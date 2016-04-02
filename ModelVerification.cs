@@ -8,7 +8,6 @@ namespace EntityFramework.Verify
 {
     public class ModelVerification<TModel>
     {
-        private readonly int _tolerance;
         public ModelVerification(string connectionString, int tolerance)
         {
             _tolerance = tolerance;
@@ -17,6 +16,7 @@ namespace EntityFramework.Verify
             NameSpacesToIgnore = Enumerable.Empty<string>();
         }
 
+        private readonly int _tolerance;
         public IEnumerable<string> NameSpacesToIgnore { get; set; }
 
         public List<Summary> Report
