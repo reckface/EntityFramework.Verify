@@ -39,9 +39,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DataEntity.cs" />
+    <Compile Include="EntityFrameworkTypeRepository.cs" />
+    <Compile Include="IEntityTypeRepository.cs" />
+    <Compile Include="ITableFactory.cs" />
     <Compile Include="ModelVerification.cs" />
+    <Compile Include="MultiConnectionSqlTableRepository.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SqlTableRepository.cs" />
     <Compile Include="Summary.cs" />
+    <Compile Include="VerificationExtensions.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

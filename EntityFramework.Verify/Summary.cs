@@ -62,7 +62,7 @@ namespace EntityFramework.Verify
 
         private static bool Compare(int tolerance, string property, string column)
         {
-            var exists = property == column || (property.StartsWith(column) && Math.Abs(column.Length - property.Length) <= tolerance);
+            var exists = string.Equals(property, column, StringComparison.InvariantCultureIgnoreCase) || (property.StartsWith(column) && Math.Abs(column.Length - property.Length) <= tolerance);
             return exists;
         }
     }

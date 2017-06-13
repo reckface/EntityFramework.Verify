@@ -6,14 +6,15 @@ using System.Reflection;
 
 namespace EntityFramework.Verify
 {
+
     public class ModelVerification<TModel>
     {
-        public ModelVerification(string connectionString, int tolerance)
+        public ModelVerification(IEntityTypeRepository typeRepository, ITableFactory tableFactory, int tolerance)
         {
             _tolerance = tolerance;
-            _connectionString = connectionString;
-            Database = new SqlConnectionStringBuilder(_connectionString).InitialCatalog;
+            _tableFactory = tableFactory;
             NameSpacesToIgnore = Enumerable.Empty<string>();
+            _typeRepository = typeRepository;
         }
 
         private readonly int _tolerance;
@@ -28,11 +29,12 @@ namespace EntityFramework.Verify
             }
         }
 
-        private readonly string _connectionString;
-        private string[] _tables = { };
+        
+        private TableModel[] _tables = { };
         private IEnumerable<Summary> _report;
-
-        public string Database { get; }
+        private readonly IEntityTypeRepository _typeRepository;
+        private readonly ITableFactory _tableFactory;
+        
 
         /// <summary>
         /// Runs the verification of the model and returns a lookup with all the entities with missing columns
@@ -71,83 +73,21 @@ namespace EntityFramework.Verify
         /// <param name="entityName"></param>
         /// <param name="tolerance">How strict should the match be</param>
         /// <returns></returns>
-        public IEnumerable<string> GetSqlColumnNames(string entityName, int tolerance)
+        public IEnumerable<string> GetSqlColumnNames(TableModel table, string entityName, int tolerance)
         {
-            const string query = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = @Table ";
-            var table = getTableName(entityName, tolerance);
-            if (string.IsNullOrEmpty(table))
-            {
-                throw new InvalidOperationException($"Table '{entityName}' does not exist in database: {Database}");
-            }
-
-            return GetList(query, new Dictionary<string, object>
-            {
-                {"Table", table }
-            });
+            return _tableFactory.GetMatchingTableColumns(table, entityName, tolerance);
         }
-
-        public IEnumerable<string> GetList(string query, Dictionary<string, object> filters = null)
+        
+        public IEnumerable<TableModel> GetAllSqlTableNames()
         {
-            using (var connection = new SqlConnection(_connectionString))
-            {
-                var cmd = new SqlCommand(query, connection);
-
-                if (filters != null)
-                    cmd.Parameters.AddRange(filters.Select(f => new SqlParameter(f.Key, f.Value)).ToArray());
-                connection.Open();
-                //cmd.CommandType = CommandType.Text;
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        // Create a Favorites instance
-                        var item = reader[0].ToString();
-                        // ... etc ...
-                        yield return item;
-                    }
-                }
-            }
-        }
-        public IEnumerable<string> GetAllSqlTableNames()
-        {
-            const string query = "SELECT TABLE_NAME  FROM INFORMATION_SCHEMA.TABLES";
-            return GetList(query);
+            return _tableFactory.GetTables();
         }
 
         private IEnumerable<string> GetEntityPropertyNames(Type t)
         {
-            var properties = t.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(
-                    p =>
-                        IsEfProperty(p) &&
-                        !containsNamespaces(p) &&
-                        // to avoid navigation properties
-                        !p.PropertyType.FullName.Contains("Collection"))
-                .Select((p, i) => new
-                {
-                    Index = i,
-                    Property = p,
-                    p.Name,
-                    // We can use the index and other things later if we decide to
-                })
-                .ToArray();
-            // Also these conditions excludes navigation properties: !p.PropertyType.FullName.Contains("AWM.Data") && !p.PropertyType.FullName.Contains("Collection")
-            return properties.Select(p => p.Name);//.ToArray();
+            return _typeRepository.GetColumns(t, NameSpacesToIgnore);
         }
-
-        public static bool IsEfProperty(PropertyInfo prop)
-        {
-            if (!prop.CanWrite || !prop.CanRead || prop.GetSetMethod() == null)
-                return false;
-
-            return prop.DeclaringType != null && prop.DeclaringType.GetFields(BindingFlags.NonPublic | BindingFlags.Instance)
-                                     .Any(f => f.Name.Contains("<" + prop.Name + ">"));
-        }
-
-        private bool containsNamespaces(PropertyInfo p)
-        {
-            return NameSpacesToIgnore.Any(n => containsNamespace(p, n));
-        }
+        
 
         private static bool containsNamespace(PropertyInfo p, string ns)
         {
@@ -158,7 +98,7 @@ namespace EntityFramework.Verify
         private List<Summary> getVerificationResults<T>(int tolerance)
         {
             var properties = new List<Summary>();
-            if (string.IsNullOrEmpty(_connectionString))
+            if (string.IsNullOrEmpty(_tableFactory.ConnectionString))
             {
                 properties.Add(new Summary
                 {
@@ -174,7 +114,7 @@ namespace EntityFramework.Verify
                 // List all the table names in the database
                 _tables = GetAllSqlTableNames().ToArray();
                 // List all the entity types
-                var entityTypes = getEntityTypes<T>();
+                var entityTypes = _typeRepository.GetEntityTypes(); // getEntityTypes<T>();
 
                 // List all the entity names
                 var entityNames = entityTypes.Select(t => t.Name).Where(t => t != null).ToArray();
@@ -184,7 +124,7 @@ namespace EntityFramework.Verify
                 properties = entityTypes
                     .Where(t => !missingTables.Contains(t.Name))
                     .Select(
-                        p => new Summary(p.Name, Database, getTableName(p.Name, tolerance), GetEntityPropertyNames(p), GetSqlColumnNames(p.Name, tolerance), tolerance)).
+                        p => GetSummary(tolerance, p)).
                     ToList();
 
             }
@@ -209,17 +149,15 @@ namespace EntityFramework.Verify
             return properties.ToList();
         }
 
-        private Type[] getEntityTypes<T>()
+        private Summary GetSummary(int tolerance, DataEntity p)
         {
-            var entityTypes = typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(p => p.PropertyType.IsGenericType)
-                .Select(p => p.PropertyType.GetGenericArguments()[0]).ToArray();
-            return entityTypes;
+            var table = getTableModel(p.Name, tolerance);
+            return new Summary(p.Name, table.Database, table.Name, GetEntityPropertyNames(p.Type), GetSqlColumnNames(table, p.Name, tolerance), tolerance);
         }
-
+        
         private bool TableExists(string entity, int tolerance)
         {
-            var exists = _tables.Any(t => Compare(tolerance, entity, t));
+            var exists = _tables.Any(t => Compare(tolerance, entity, t.Name));
             return exists;
         }
 
@@ -231,12 +169,12 @@ namespace EntityFramework.Verify
             return exists;
         }
 
-        private string getTableName(string entity, int tolerance)
+        private TableModel getTableModel(string entity, int tolerance)
         {
             return _tables
-                .OrderBy(t => t)
-                .ThenBy(t => !string.IsNullOrEmpty(t) ? t.Length : 0)
-                .FirstOrDefault(t => Compare(tolerance, entity, t));
+                .OrderBy(t => t.Name)
+                .ThenBy(t => !string.IsNullOrEmpty(t.Name) ? t.Name.Length : 0)
+                .FirstOrDefault(t => Compare(tolerance, entity, t.Name));
         }
     }
 }

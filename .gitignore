@@ -3,3 +3,8 @@
 ################################################################################
 
 *.suo
+/EntityFramework.Verify/bin
+/EntityFramework.Verify/obj
+*.dll
+/.vs
+/EntityFramework.Verify/.vs
