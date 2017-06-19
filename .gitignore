@@ -8,3 +8,6 @@
 *.dll
 /.vs
 /EntityFramework.Verify/.vs
+/EntityFramework.Verify/Linq2Sql.Verify/obj
+/EntityFramework.Verify/Linq2Sql.Verify/bin
+*.pdb
