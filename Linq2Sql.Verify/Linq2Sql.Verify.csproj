@@ -44,7 +44,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\EntityFramework.Verify.csproj">
+    <ProjectReference Include="..\EntityFramework.Verify\EntityFramework.Verify.csproj">
       <Project>{9c686d47-9888-45ab-ae22-25c173f0b023}</Project>
       <Name>EntityFramework.Verify</Name>
     </ProjectReference>

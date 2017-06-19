@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntityFramework.Verify", "E
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp1", "..\ConsoleApp1\ConsoleApp1.csproj", "{EB3C8B87-6936-474A-AABF-2F205ECF3BC1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Linq2Sql.Verify", "Linq2Sql.Verify\Linq2Sql.Verify.csproj", "{53C482BD-780A-4920-9EA8-D7D836FC8813}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Linq2Sql.Verify", "..\Linq2Sql.Verify\Linq2Sql.Verify.csproj", "{53C482BD-780A-4920-9EA8-D7D836FC8813}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
