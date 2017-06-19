@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Linq;
 using System.Reflection;
 
 namespace EntityFramework.Verify
 {
 
-    public class ModelVerification<TModel>
+    public class ModelVerification
     {
         public ModelVerification(IEntityTypeRepository typeRepository, ITableFactory tableFactory, int tolerance)
         {
@@ -42,7 +41,7 @@ namespace EntityFramework.Verify
         /// <returns></returns>
         public IEnumerable<Summary> GenerateReport()
         {
-            var modelValidation = getVerificationResults<TModel>(5 - _tolerance);
+            var modelValidation = getVerificationResults(5 - _tolerance);
             return modelValidation;
         }
 
@@ -95,7 +94,7 @@ namespace EntityFramework.Verify
             return contains;
         }
 
-        private List<Summary> getVerificationResults<T>(int tolerance)
+        private List<Summary> getVerificationResults(int tolerance)
         {
             var properties = new List<Summary>();
             if (string.IsNullOrEmpty(_tableFactory.ConnectionString))
